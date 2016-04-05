@@ -1,0 +1,100 @@
+README
+wireless log analysis
+Requirements:
+Aruba wireless controller (or adapt for other) able to produce a 
+daily report containing certain fields [1].
+
+
+Data Extraction and Transformation Procedure: 
+	1. Use scrapeamp.py to download the daily file(s). It will encode the userids using secure hash standard SHA256 (NIST, NIST FIPS(pdf)).
+		a. The hash algorithms specified in this Standard are called secure because, for a given algorithm, it 
+		is computationally infeasible
+		1) to find a message that corresponds to a given message digest, or 
+		2) to find two different messages that produce the same message digest. 
+		
+	2. Append the dailies into a monthly file
+		a. ls 201601*.csv > 201601.lst
+			i. Remove the first filename, which will be for the previous month
+			ii. add 20160201.csv, which in this example will be the last day of January
+		b. cat $(cat 201601.lst) > 201601.csv
+	3. (split the datetime fields into date and 24 hour time)
+		a. OpenRefine
+			i. Create project: csv, 0 lines for header
+		b. OR: Split up time (python):
+			i. Import time
+			ii. '2/1/2016 7:34 PM'
+			iii. time.strptime('2/1/2016 7:34 PM', "%m/%d/%Y %I:%M %p")
+
+Data Load procedure: TBD
+
+Analysis / Reports:
+Using q to query text logs:
+Create a multi-day log: 
+samk@bodhi3:~/wireless/rawWifi2016$ ls 201603* > 201603.lst
+samk@bodhi3:~/wireless/rawWifi2016$ ls 20160401 >> 201603.lst
+substitute line '+' for line ending characters  (s/\n\+\)
+to get, e.g.:
+20160302.csv+20160303.csv+20160304.csv+20160305.csv+20160306.csv+20160307.csv+20160308.csv+20160309.csv+20160310.csv+20160311.csv+20160312.csv+20160316.csv+20160317.csv+20160318.csv+20160319.csv+20160320.csv+20160321.csv+20160322.csv+20160323.csv+20160324.csv+20160325.csv+20160326.csv+20160327.csv+20160328.csv+20160329.csv+20160330.csv+20160331.csv+20160401.csv
+
+
+Example queries (column positions may vary! [1]):
+Patrons by AP location, by campus
+q -d, "select c5, UPPER(c3), count(*) from 20151105.csv where c5 like 'CUC-HON-1%' group by c5,UPPER(c3) order by 3
+desc"
+
+Count the number of unique machines per username (identifies shared authentication details)
+select c2, count(distinct(c1)) from 20151208.csv group by c1 order by 2 
+
+Count the number of unique usernames per campus
+select lower(c3), count(distinct(c2)) from 20151208.csv group by lower(c3)
+ - OR - 
+select lower(Campus), count(distinct(Username)) from 20151208.csv group by lower(Campus)
+
+Count the number of unique usernames per campus per building area 
+select lower(c3), c5, count(distinct(c2)) from 20151208.csv group by c5, lower(c3)
+
+Count the number of unique usernames per campus per floor
+q -d, "select trim(substr(c5,1,10),'-'), count(distinct(c2)) from 201601.csv where instr(c5,'-1-')>0 and lower(c3) like '%kgi%' group by substr(c5,1,3)"
+
+Count the number of unique usernames per building area
+select c8, count(distinct(c2)) from 20151208.csv group by c8
+
+Count the number of (campus) unique users per month
+q -d, "select count(distinct(c2)) from 201602.csv where lower(c3) like '%kgi%'"
+
+Count the number of (campus) unique users per month NOT in Connections
+q -d, "select trim(substr(c5,1,10),'-'), count(distinct(c2)) from 201601.csv where instr(c5,'-1-')>0 and lower(c3) like '%kgi%' and c5!='CUC-HON-1-S-CONNECTION' group by substr(c5,1,3)"
+
+Count the number of unique users at session connect hours (when the user initiated a wireless session) -- depends on breaking the datetime fields into date, hour, minute, and Day/Night.
+select ConnectDate, ConnectHour, ConnectDN, count(distinct(Username)) from 20151210_Rpt.csv group by ConnectDate, ConnectHour, ConnectDN order by ConnectDate, ConnectDN, ConnectHour
+
+
+
+[1] Report Fields
+1. MAC Address
+2. Username
+3. campus
+4. Role
+5. Device Name
+6. Group
+7. Folder
+8. Device Location
+9. Connect Time
+10. Disconnect Time
+11. Duration
+12. Total Traffic (MB)
+13. Total Traffic In (MB)
+14. Total Traffic Out (MB)
+15. Avg Usage (Kbps)
+16. Avg Signal (dBm)
+17. Avg Signal Quality
+18. Vendor
+19. Connection Mode
+20. SSID
+21. AOS Device Type
+22. Device Type
+23. Manufacturer
+24. Model
+25. OS
+26. OS Detail
+

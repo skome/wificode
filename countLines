@@ -1,0 +1,4 @@
+#! /bin/sh
+for d in ls rawWifi2016/201603*.csv; do
+   wc -l $d;
+done
