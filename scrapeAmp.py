@@ -25,9 +25,11 @@ def verify_password(uid, hashed_uid, salt):
     return re_hashed == hashed_uid
 
 def getdate24Time(dateString):
-	datelisted = strptime(dateStringstrip('"'),"%m/%d/%Y %I:%M %p")
+	try:
+		datelisted = strptime(dateString.strip('"'),"%m/%d/%Y %I:%M %p")
+	except ValueError:
+		datelisted = []
 	return datelisted
-)
 
 def setupBrowser():
 	# Set up a web Browser to login to AMP and download the dataset(s)
@@ -50,7 +52,11 @@ def setupBrowser():
 	# User-Agent (this is cheating, ok?)
 	mechBr.addheaders = [('User-agent', UA)]
 	return mechBr
-
+config = ConfigParser.RawConfigParser()# get salt, login deets
+config.read('scrapeAmp.cfg')
+# Current report ID
+reportID=sys.argv[1] 
+outputfile = sys.argv[2]
 # User agent
 UA = 'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.0.1) Gecko/2008071615 Fedora/3.0.1-1.fc9 Firefox/3.0.1'
 #URL = 'https://amp.pomona.edu/nf/csv_export.csv?csv_export_uri=\x2Freport_detail&csv_export_list_namespace=pickled_client_aggregate_data&csv_export_list_args=id\x3D%s' % (reportID)
@@ -62,11 +68,6 @@ newLine=[]
 AMPUnameField = 'credential_0'
 AMPPassField = 'credential_1'
 if __name__ == '__main__':
-	config = ConfigParser.RawConfigParser()# get salt, login deets
-	config.read('scrapeAmp.cfg')
-	# Current report ID
-	reportID=sys.argv[1] 
-	outputfile = sys.argv[2]
 	# Get a web browser
 	br = setupBrowser() 
 	# open the  URL given for downloading the CSV. Note: Typically throws a survivable 403 error
@@ -104,13 +105,13 @@ if __name__ == '__main__':
 			newLine = [macid,uname,campus]
 			try:
 				#parse apart the datetime from connectime, field 8					
-				dateTimeList = getdate24Time(pline[8])
+				dateTimeList = getdate24Time(pline[7])
 			except IndexError:
 				dateTimeList = [0,0,0,0,0,0,0,0,0]
-			for item in pline[2:8]: 
+			for item in pline[2:7]: 
 				newLine.append(item)
 			for item in dateTimeList:
-				newLine.append(item)
+				newLine.append(str(item))
 			for item in pline[8:]:
 				newLine.append(item)
 			print>>csvOut, ','.join(newLine)
