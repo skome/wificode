@@ -14,6 +14,9 @@ doc="""
 report is the name of the Amp report we want to retrieve. Retrieve from AMP.
 Outputfile should include path, will be created if not existing and clobbered if existing
 """
+
+dtFormat = "%m/%d/%Y %I:%M %p %Z"
+
 def hash_uid(uname, salt=None):
     if salt is None:
         salt = uuid.uuid4().hex
@@ -26,7 +29,7 @@ def verify_password(uid, hashed_uid, salt):
 
 def getdate24Time(dateString):
 	try:
-		datelisted = strptime(dateString.strip('"'),"%m/%d/%Y %I:%M %p")
+		datelisted = strptime(dateString.strip('"'),dtFormat)
 	except ValueError:
 		datelisted = []
 	return datelisted
@@ -115,6 +118,5 @@ if __name__ == '__main__':
 			for item in pline[8:]:
 				newLine.append(item)
 			print>>csvOut, ','.join(newLine)
-
 	print "Data retrieved and written to {}. Exiting.".format(outputfile)
 
